@@ -6,17 +6,23 @@ from Bio.Seq import Seq
 
 #For the path of the mutlifasta file
 
-filePATH = input("Please input a File Path, you need to double the backslashes in order for program to work (ex: '\\'--> '\\\'): ")
-bps = input("Please provide the raw basepairs of the WT protein sequence you are investigating. This exclude the stop codon and yeast display components: ")
-WildType_Seq = input("Please provide an uppercase amino acid sequence to use as a WT comparison: ")
-Identifiers = input("Please provide uppercase basepair sequence of that should remains unchanged in all constructs looking to be compared: ")
-WT_name = input("Please enter the name of your control protein: ")
+#filePATH = input("Please input a File Path, you may need to double the backslashes in order for program to work (ex: '\'--> '\\'): ")
+#bps = input("Please provide the raw basepairs of the WT protein sequence you are investigating. This exclude the stop codon and yeast display components: ")
+#WildType_Seq = input("Please provide an uppercase amino acid sequence to use as a WT comparison: ")
+#Identifiers = input("Please provide uppercase basepair sequence of that should remains unchanged in all constructs looking to be compared: ")
+#WT_name = input("Please enter the name of your control protein: ")
 
-#filePATH = "C:\\Users\\Paursa Kamalian\\Downloads\\DAVIDSHOULTZ10-17-2022_015359_651\\30-774315135.fasta"
-#bps = 354
-#WildType_Seq = "MSEEQIRQFLRRFYEALDSGDADTAASLFHPGVTIHLWDGVTFTSREEFREWFERLFSTSKDAQREIKSLEVRGDTVEVHVQLHATHNGQKHTVDLTHHWHFRGNRVTEVRVHINPTG"
-#Identifiers = "ATGAGC"
-#WT_name = "WT LUXSIT"
+
+#THE ASSUMPTIONS MADE FOR THIS SCRIPT TO WORK:
+# - You receive great sequencing quality scores
+# - Your sequence file is a Fasta or MultiFasta Format
+# - Your Identifiable region for all sequences is the first few basepairs preferably 5 or 6 bps
+
+filePATH = "C:\\Users\\Paursa Kamalian\\Downloads\\DAVIDSHOULTZ10-17-2022_015359_651\\30-774315135.fasta"
+bps = 354
+WildType_Seq = "MSEEQIRQFLRRFYEALDSGDADTAASLFHPGVTIHLWDGVTFTSREEFREWFERLFSTSKDAQREIKSLEVRGDTVEVHVQLHATHNGQKHTVDLTHHWHFRGNRVTEVRVHINPTG"
+Identifiers = "ATGAGC"
+WT_name = "WT LUXSIT"
 
 
 
@@ -39,7 +45,7 @@ def List_of_Tupled_ID_Seq(filePATH):
 def ExtractDNA(Tupled_SEQList_Info):
     list_of_seqs = []
     for item in Tupled_SEQList_Info:
-        list_of_seqs.append(str(item[1]).upper())
+        list_of_seqs.append((str(item[1]).upper(), item[0]))
 
     return list_of_seqs
 
@@ -51,11 +57,11 @@ def BeginAlignment(list_of_sequences):
     
     list_of_indexes = []
     for seq in list_of_sequences:
-        if Identifiers in seq:
-            a = seq.index(Identifiers)
-            list_of_indexes.append((a, seq[a:a+int(bps)],len(seq[a:a+int(bps)])))
-        elif "N" or "-" in seq:
-            list_of_indexes.append("TAATAATAA")
+        if Identifiers in seq[0]:
+            a = seq[0].index(Identifiers)
+            list_of_indexes.append((seq[1], seq[0][a:a+int(bps)], len(seq[0][a:a+int(bps)])))
+        else:
+            list_of_indexes.append((seq[1],"TAATAATAA"))
             
     return list_of_indexes
 
@@ -69,35 +75,29 @@ def Translate_String_Sequence(Tupled_String_SEQ):
     AminoAcid_Sequence_List_w_ID = []
     for item in Tupled_String_SEQ:
         SeqObject = Seq(item[1])
-        AminoAcid_Sequence_List_w_ID.append((Tupled_String_SEQ.index(item)+1,str(SeqObject.translate())))
+        AminoAcid_Sequence_List_w_ID.append((Tupled_String_SEQ.index(item)+1,str(SeqObject.translate()), item[0]))
     return AminoAcid_Sequence_List_w_ID
 
 
 Variable_For_Translation_List = Translate_String_Sequence(Tupled_String_Info_Of_Sequences)
 
-#for L in Variable_For_Translation_List:
-#    print(L)
-    
-
 def AA_Comparison_Operator(Amino_Acid_SEQ_w_ID):
 #Part 1: Isolate variant Amino Acid sequences to later compare
     Only_Amino_Acid_Seqs = []
     for item in Amino_Acid_SEQ_w_ID:
-        Only_Amino_Acid_Seqs.append(item[1])
+        Only_Amino_Acid_Seqs.append((item[1], item[-1]))
 
 #Part 2: Record original Amino Acid, the Position and then Mutation        
     Record_Of_Mutations = []
-    idx = 0
     for AAseq in Only_Amino_Acid_Seqs:
-        idx += 1
-        if AAseq == WildType_Seq:
-            Record_Of_Mutations.append((idx,WT_name))
-        elif AAseq == "TAATAATAA":
-            Record_Of_Mutations.append((idx, "Needs manual review or sequencing needs to be repeated"))
+        if AAseq[0] == WildType_Seq:
+            Record_Of_Mutations.append((AAseq[1],WT_name))
+        elif AAseq[0] == "***":
+            Record_Of_Mutations.append((AAseq[1], "Needs manual review or sequencing needs to be repeated"))
         else:
-            for i in range(len(AAseq)):
-                if AAseq[i] != WildType_Seq[i]:
-                    Record_Of_Mutations.append((idx, WildType_Seq[i], i+1 ,AAseq[i]))
+            for i in range(len(AAseq[0])):
+                if AAseq[0][i] != WildType_Seq[i]:
+                    Record_Of_Mutations.append((AAseq[1], WildType_Seq[i], i+1 ,AAseq[0][i]))
 
     return Record_Of_Mutations
             
