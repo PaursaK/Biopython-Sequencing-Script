@@ -14,16 +14,17 @@ WT_name = input("Please enter the name of your control protein: ")
 #THE ASSUMPTIONS MADE FOR THIS SCRIPT TO WORK:
 # - You receive great sequencing quality scores
 # - Your sequence file is a Fasta or MultiFasta Format
-# - Your Identifiable region for all sequences is pETCON3 cutsight for NdeI
+# - Your sequence is less than ~1000 bps long
+# - Your Identifiable region for all sequences is pETCON3/pET29 cutsight for NdeI or XhoI
 
 # filePATH = ***YOUR FILE PATH HERE OR YOU CAN USE THE USER INPUT VARIABLE***
 
 WT_DNASeq = WT_DNASeq_Input.upper()
 bps = len(WT_DNASeq)
-#print(bps)
+
 DNA_SEQ_OBJECT = Seq(WT_DNASeq)
 WildType_AASeq = str(DNA_SEQ_OBJECT.translate())
-#print(WildType_AASeq)
+
 # NdeI cutsight Identifier, Forward(Beginning of Sequence)
 IdentifiersFW = "CATATG"
 # XhoI cutsight Identifier, Reverse(End of Sequence)
@@ -44,7 +45,6 @@ def List_of_Tupled_ID_Seq(filePATH):
     return List_Of_Tuples
 
 # This should isolate the fragment of DNA starting at the Start Codon("ATG") after the Glycine linker and going until the length of the actual protein sequence
-# Need to make this more robust in order to be utilized for any type of protein we are trying to sequence that is less than 1000bps and we get sequencing results
 
 def BeginAlignment(IDs_Seqs):
     
