@@ -7,27 +7,31 @@ from Bio.Seq import Seq
 #For the path of the mutlifasta file
 
 #filePATH = input("Please input a File Path, you may need to double the backslashes in order for program to work (ex: '\'--> '\\'): ")
-#bps = input("Please provide the raw basepairs of the WT protein sequence you are investigating. This exclude the stop codon and yeast display components: ")
-#WildType_Seq = input("Please provide an uppercase amino acid sequence to use as a WT comparison: ")
-#Identifiers = input("Please provide uppercase basepair sequence of that should remains unchanged in all constructs looking to be compared: ")
-#WT_name = input("Please enter the name of your control protein: ")
+WT_DNASeq_Input = input("Please provide an uppercase WT DNA sequence to use as a WT control: ")
+WT_name = input("Please enter the name of your control protein: ")
 
 
 #THE ASSUMPTIONS MADE FOR THIS SCRIPT TO WORK:
 # - You receive great sequencing quality scores
 # - Your sequence file is a Fasta or MultiFasta Format
-# - Your Identifiable region for all sequences is the first few basepairs preferably 5 or 6 bps
+# - Your Identifiable region for all sequences is pETCON3 cutsight for NdeI
 
-filePATH = "C:\\Users\\Paursa Kamalian\\Downloads\\DAVIDSHOULTZ10-17-2022_015359_651\\30-774315135.fasta"
-bps = 354
-WildType_Seq = "MSEEQIRQFLRRFYEALDSGDADTAASLFHPGVTIHLWDGVTFTSREEFREWFERLFSTSKDAQREIKSLEVRGDTVEVHVQLHATHNGQKHTVDLTHHWHFRGNRVTEVRVHINPTG"
-Identifiers = "ATGAGC"
-WT_name = "WT LUXSIT"
+# filePATH = ***YOUR FILE PATH HERE OR YOU CAN USE THE USER INPUT VARIABLE***
+
+WT_DNASeq = WT_DNASeq_Input.upper()
+bps = len(WT_DNASeq)
+#print(bps)
+DNA_SEQ_OBJECT = Seq(WT_DNASeq)
+WildType_AASeq = str(DNA_SEQ_OBJECT.translate())
+#print(WildType_AASeq)
+# NdeI cutsight Identifier, Forward(Beginning of Sequence)
+IdentifiersFW = "CATATG"
+# XhoI cutsight Identifier, Reverse(End of Sequence)
+IdentifiersRV = "CTCGAG"
 
 
 
-
-#Should creat a list of tuples that contains the Seq ID and Seq Object(aka the sequence)
+# Should creat a list of tuples that contains the Seq ID and Seq Object(aka the sequence)
 def List_of_Tupled_ID_Seq(filePATH):
     List_Of_Tuples = []
     MultiFastaFile = SeqIO.parse(filePATH, "fasta")
@@ -39,65 +43,63 @@ def List_of_Tupled_ID_Seq(filePATH):
     
     return List_Of_Tuples
 
+# This should isolate the fragment of DNA starting at the Start Codon("ATG") after the Glycine linker and going until the length of the actual protein sequence
+# Need to make this more robust in order to be utilized for any type of protein we are trying to sequence that is less than 1000bps and we get sequencing results
 
-
-#Should isolate list of sequences from the tuple of ID and convert the Seq Object into a string
-def ExtractDNA(Tupled_SEQList_Info):
-    list_of_seqs = []
-    for item in Tupled_SEQList_Info:
-        list_of_seqs.append((str(item[1]).upper(), item[0]))
-
-    return list_of_seqs
-
-#This should isolate the fragment of DNA starting at the Start Codon("ATG") after the Glycine linker and going until the length of the actual protein sequence
-#Need to make this more robust in order to be utilized for any type of protein we are trying to sequence that is less than 1000bps and we get sequencing results
-#Right now this is tailored towards luxsit
-
-def BeginAlignment(list_of_sequences):
+def BeginAlignment(IDs_Seqs):
     
-    list_of_indexes = []
-    for seq in list_of_sequences:
-        if Identifiers in seq[0]:
-            a = seq[0].index(Identifiers)
-            list_of_indexes.append((seq[1], seq[0][a:a+int(bps)], len(seq[0][a:a+int(bps)])))
+    List_Of_FileIDs_Aligned_Sequences = []
+    for seq in IDs_Seqs:
+        if IdentifiersFW in seq[1]:
+            a = seq[1].index(IdentifiersFW)
+            List_Of_FileIDs_Aligned_Sequences.append((seq[0], str(seq[1][a+3:a+3+int(bps)].upper())))
+        elif IdentifiersRV in seq[1]:
+            a = seq[1].index(IdentifiersRV)
+            List_Of_FileIDs_Aligned_Sequences.append((seq[0], str(seq[1][a-int(bps):a].upper())))  
         else:
-            list_of_indexes.append((seq[1],"TAATAATAA"))
+            List_Of_FileIDs_Aligned_Sequences.append((seq[0],"TAATAATAA"))
             
-    return list_of_indexes
+    return List_Of_FileIDs_Aligned_Sequences
 
-#Testing the output for the BeginAlignment, ExtractDNA and List_of_Tupled_ID_Seq functions that were created
+# Testing the output for the BeginAlignment, List_of_Tupled_ID_Seq functions that were created
 
-Tupled_String_Info_Of_Sequences = BeginAlignment(ExtractDNA(List_of_Tupled_ID_Seq(filePATH)))
+Tupled_String_Info_Of_Sequences = BeginAlignment(List_of_Tupled_ID_Seq(filePATH))
 
-#This function should output from the previous 3 functions aka take a the tupled info which contains start codon position 
-#and then the basepairs that contain the protein sequence and translate them into Amino Acid Sequence with a plate ID
+# This function should output from the previous 2 functions aka take a the tupled info which contains start codon position 
+# and then the basepairs that contain the protein sequence and translate them into Amino Acid Sequence with a plate ID
 def Translate_String_Sequence(Tupled_String_SEQ):
     AminoAcid_Sequence_List_w_ID = []
     for item in Tupled_String_SEQ:
+        FileID = item[0]
         SeqObject = Seq(item[1])
-        AminoAcid_Sequence_List_w_ID.append((Tupled_String_SEQ.index(item)+1,str(SeqObject.translate()), item[0]))
+        AminoAcid_Sequence_List_w_ID.append((FileID, str(SeqObject.translate())))
     return AminoAcid_Sequence_List_w_ID
 
 
 Variable_For_Translation_List = Translate_String_Sequence(Tupled_String_Info_Of_Sequences)
+for item in Variable_For_Translation_List:
+    print(len(item[1]))
 
 def AA_Comparison_Operator(Amino_Acid_SEQ_w_ID):
-#Part 1: Isolate variant Amino Acid sequences to later compare
+# Part 1: Isolate variant Amino Acid sequences to later compare
     Only_Amino_Acid_Seqs = []
     for item in Amino_Acid_SEQ_w_ID:
-        Only_Amino_Acid_Seqs.append((item[1], item[-1]))
+        Only_Amino_Acid_Seqs.append((item[0], item[1]))
 
-#Part 2: Record original Amino Acid, the Position and then Mutation        
+# Part 2: Record original Amino Acid, the Position and then Mutation        
     Record_Of_Mutations = []
     for AAseq in Only_Amino_Acid_Seqs:
-        if AAseq[0] == WildType_Seq:
-            Record_Of_Mutations.append((AAseq[1],WT_name))
-        elif AAseq[0] == "***":
-            Record_Of_Mutations.append((AAseq[1], "Needs manual review or sequencing needs to be repeated"))
+        if AAseq[1] == WildType_AASeq:
+            Record_Of_Mutations.append((AAseq[0],WT_name))
+        elif AAseq[1] == "***":
+            Record_Of_Mutations.append((AAseq[0], "Unable to Find Alignnment Identifier(s)"))
         else:
-            for i in range(len(AAseq[0])):
-                if AAseq[0][i] != WildType_Seq[i]:
-                    Record_Of_Mutations.append((AAseq[1], WildType_Seq[i], i+1 ,AAseq[0][i]))
+            try:
+                for i in range(len(AAseq[1])):
+                    if AAseq[1][i] != WildType_AASeq[i]:
+                        Record_Of_Mutations.append((AAseq[0], WildType_AASeq[i], i+1 ,AAseq[1][i]))
+            except Exception as e:
+                Record_Of_Mutations.append((AAseq[0], e))
 
     return Record_Of_Mutations
             
